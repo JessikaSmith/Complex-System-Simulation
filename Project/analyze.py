@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from processing import *
 import seaborn as sns
 from random import choice
+import math
 
 plt.interactive(True)
 
@@ -106,10 +107,35 @@ def plot_avg_degree_connectivity(connect):
 def get_assortativity_coeff(g):
     return nx.degree_pearson_correlation_coefficient(g)
 
+def estimating_power_law(data):
+    values = data['Degree']
+    cum_sum = 0
+    for i in values:
+        cum_sum += math.log(i)
+    return 1 + len(values)*(cum_sum**(-1))
+
 
 def draw_graph(graph):
     nx.draw(graph, pos=nx.spring_layout(graph), with_labels=False)
 
+def plot_betweeness_centrality(data):
+    values = data['betweenesscentrality']
+    values = [float(i) for i in values]
+    counts = {}
+    for n in values:
+        if n not in counts:
+            counts[n] = 0
+        counts[n] += 1
+    items = sorted(counts.items())
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot([k for (k, v) in items], [v for (k, v) in items], 'ro')
+    ax.set_xscale('log')
+    plt.xlabel('Centrality')
+    ax.set_yscale('log')
+    plt.ylabel('Count')
+    plt.title('Betweeness Centrality Distribution')
+    fig.savefig(IMG_PATH + 'betweenesscentrality_distribution.png')
 
 def main():
     fname = 'Datasets/Cit-HepPh.txt'
@@ -120,8 +146,11 @@ def main():
     # plot_in_degree_distribution(graph)
     # plot_out_degree_distribution(graph)
     # plot_distances(nx.shortest_path_length(graph))
-
-    plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
+    # plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
+    node_metrics = 'Datasets/node_metrics.csv'
+    metrics = read_csv(node_metrics)
+    # plot_betweeness_centrality(metrics)
+    print(estimating_power_law(metrics))
 
 
 if __name__ == '__main__':

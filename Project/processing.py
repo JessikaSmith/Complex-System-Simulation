@@ -11,6 +11,9 @@ def read_txt(fname):
     # save_to_csv(data)
     return data
 
+def read_csv(fname):
+    data = pd.read_csv(fname)
+    return data
 
 def main():
     fname = 'Project/Cit-HepPh.txt'
