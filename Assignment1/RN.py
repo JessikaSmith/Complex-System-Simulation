@@ -75,10 +75,10 @@ def plot_degree_distribution(graph):
     fig.savefig('degree_distribution.png')
 
 
-def main():
-    n, m = map(int, input().split())
-    generate_small_example(n, m)
-
-
-if __name__ == '__main__':
-    main()
+# def main():
+#     n, m = map(int, input().split())
+#     generate_small_example(n, m)
+#
+#
+# if __name__ == '__main__':
+#     main()
