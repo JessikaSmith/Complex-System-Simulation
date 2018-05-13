@@ -68,7 +68,21 @@ def plot_distances(dist):
     plt.xlabel('Distance')
     plt.ylabel('Number of nodes')
     plt.title('Distance Distribution')
-    fig.savefig('distance_distribution.png')
+    fig.savefig(IMG_PATH + 'distance_distribution.png')
+
+def plot_clustering_coeffs(clust):
+    items = sorted(clust.items())
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot([v for (k, v) in items], [k for (k, v) in items], 'ro')
+    plt.ylabel('Node')
+    plt.xlabel('$C_i$')
+    plt.title('Clustering Coefficients Distribution')
+    fig.savefig('clust_distribution.png')
+    pass
+
+def plot_avg_degree_connectivity(graph):
+    nx.average_degree_connectivity(graph)
 
 
 def get_assortativity_coeff(g):
@@ -77,7 +91,6 @@ def get_assortativity_coeff(g):
 
 def draw_graph(graph):
     nx.draw(graph, pos=nx.spring_layout(graph), with_labels=False)
-    print("plotted")
 
 
 def main():
@@ -85,9 +98,10 @@ def main():
     data = read_txt(fname)
     graph = create_graph(data)
     # draw_graph(graph)
-    get_assortativity_coeff(graph)
-    plot_in_degree_distribution(graph)
-    plot_out_degree_distribution(graph)
+    print(get_assortativity_coeff(graph))
+    # plot_in_degree_distribution(graph)
+    # plot_out_degree_distribution(graph)
+    plot_distances(nx.shortest_path_length(graph))
 
 
 if __name__ == '__main__':
