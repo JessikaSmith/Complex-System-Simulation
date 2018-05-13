@@ -1,9 +1,12 @@
 # data source: http://konect.uni-koblenz.de/networks/cit-HepPh
+
 IMG_PATH = 'Figures/'
 
 import networkx as nx
 import matplotlib.pyplot as plt
 from processing import *
+import seaborn as sns
+from random import choice
 
 plt.interactive(True)
 
@@ -13,6 +16,13 @@ def create_graph(data):
     for i, j in data.values:
         G.add_edge(i, j)
     return G
+
+
+def draw_heatmap(df, title):
+    ax = plt.axes()
+    sns.heatmap(df, ax=ax, cmap="Greens")
+    ax.set_title(title)
+    plt.show()
 
 
 def plot_in_degree_distribution(graph):
@@ -70,6 +80,7 @@ def plot_distances(dist):
     plt.title('Distance Distribution')
     fig.savefig(IMG_PATH + 'distance_distribution.png')
 
+
 def plot_clustering_coeffs(clust):
     items = sorted(clust.items())
     fig = plt.figure()
@@ -78,11 +89,18 @@ def plot_clustering_coeffs(clust):
     plt.ylabel('Node')
     plt.xlabel('$C_i$')
     plt.title('Clustering Coefficients Distribution')
-    fig.savefig('clust_distribution.png')
-    pass
+    fig.savefig(IMG_PATH +'clust_distribution.png')
 
-def plot_avg_degree_connectivity(graph):
-    nx.average_degree_connectivity(graph)
+
+def plot_avg_degree_connectivity(connect):
+    items = sorted(connect.items())
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot([k for (k, v) in items], [v for (k, v) in items], 'ro')
+    plt.xlabel('k')
+    plt.ylabel('$<k_{nn}>$')
+    plt.title('Assortativity Check')
+    fig.savefig(IMG_PATH +'assortativity.png')
 
 
 def get_assortativity_coeff(g):
@@ -101,7 +119,9 @@ def main():
     print(get_assortativity_coeff(graph))
     # plot_in_degree_distribution(graph)
     # plot_out_degree_distribution(graph)
-    plot_distances(nx.shortest_path_length(graph))
+    # plot_distances(nx.shortest_path_length(graph))
+
+    plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
 
 
 if __name__ == '__main__':
