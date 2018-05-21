@@ -8,15 +8,40 @@ from processing import *
 import seaborn as sns
 from random import choice
 import math
+import pandas as pd
+import numpy as np
 
 plt.interactive(True)
 
+
+# https://stackoverflow.com/questions/16489655/plotting-log-binned-network-degree-distributions
 
 def create_graph(data):
     G = nx.DiGraph()
     for i, j in data.values:
         G.add_edge(i, j)
     return G
+
+
+def drop_zeros(a_list):
+    return [i for i in a_list if i > 0]
+
+
+def log_binning(counter_dict, bin_count=35):
+    max_x = math.log10(max(counter_dict.keys()))
+    max_y = math.log10(max(counter_dict.values()))
+    max_base = max([max_x, max_y])
+
+    min_x = math.log10(min(drop_zeros(counter_dict.keys())))
+
+    bins = np.logspace(min_x, max_base, num=bin_count)
+
+    bin_means_y = (np.histogram(counter_dict.keys(), bins, weights=counter_dict.values())[0] /
+                   np.histogram(counter_dict.keys(), bins)[0])
+    bin_means_x = (np.histogram(counter_dict.keys(), bins, weights=counter_dict.keys())[0] /
+                   np.histogram(counter_dict.keys(), bins)[0])
+
+    return bin_means_x, bin_means_y
 
 
 def draw_heatmap(df, title):
@@ -132,12 +157,13 @@ def plot_betweeness_centrality(data):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.plot([k for (k, v) in items], [v for (k, v) in items], 'ro')
+    # ax.set_ylim(ymin=-0.001)
     ax.set_xscale('log')
     plt.xlabel('Centrality')
     ax.set_yscale('log')
     plt.ylabel('Count')
     plt.title('Betweeness Centrality Distribution')
-    fig.savefig(IMG_PATH + 'betweenesscentrality_distribution.png')
+    fig.savefig(IMG_PATH + 'betweenesscentrality_distribution2.png')
 
 
 def giant_component_filtering(graph):
@@ -148,9 +174,14 @@ def giant_component_filtering(graph):
     return H
 
 
+def read_csv(fname):
+    df = pd.read_csv(fname)
+    return df
+
+
 def convert_to_csv(fname):
     df = pd.read_csv(fname, sep=" ", header=None)
-    df = df.ix[:,[0,1]]
+    df = df.ix[:, [0, 1]]
     df.to_csv("Datasets/giant_component_edges.csv", index=False, header=False)
 
 
@@ -160,13 +191,13 @@ def graph_comparison(graph, giant_comp):
 
 
 def main():
-    fname = 'Datasets/Datasets/giant_component_edges.csv'
-    data = read_csv(fname)
-    graph = create_graph(data)
-    # component = giant_component_filtering(graph)
+    # fname = 'Datasets/Datasets/giant_component_edges.csv'
+    # data = read_csv(fname)
+    # graph = create_graph(data)
+    # # component = giant_component_filtering(graph)
     # graph_comparison(graph, component)
     fname = 'Datasets/giant_component.edgelist'
-    #convert_to_csv(fname)
+    # convert_to_csv(fname)
 
     # draw_graph(graph)
     # print(get_assortativity_coeff(graph))
@@ -174,9 +205,9 @@ def main():
     # plot_out_degree_distribution(graph)
     # plot_distances(nx.shortest_path_length(graph))
     # plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
-    # node_metrics = 'Datasets/node_metrics.csv'
-    # metrics = read_csv(node_metrics)
-    # plot_betweeness_centrality(metrics)
+    node_metrics = 'Datasets/node_metrics_giant_component.csv'
+    metrics = read_csv(node_metrics)
+    plot_betweeness_centrality(metrics)
     # print(estimating_power_law(metrics))
 
 
