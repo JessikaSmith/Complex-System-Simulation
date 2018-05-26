@@ -30,6 +30,18 @@ def create_graph(data):
 def drop_zeros(a_list):
     return [i for i in a_list if i > 0]
 
+def print_distance_information(graph):
+    print("diameter",nx.diameter(graph))
+    print("radius", nx.radius(graph))
+
+def components(graph):
+    print("Number of strongly connected components", nx.number_strongly_connected_components(graph))
+    print("Number of weakly connected components", nx.number_weakly_connected_components(graph))
+
+
+    condensation = nx.condensation(graph)
+    nx.write_edgelist(condensation, "Datasets/condenced_graph.edgelist")
+
 
 def log_binning(counter_dict, bin_count=35):
     max_x = math.log10(max(counter_dict.keys()))
@@ -217,6 +229,41 @@ def plot_binned_betweeness_centrality(data):
     image.save_as(fig, filename=IMG_PATH + 'betweenesscentrality_binned2.jpeg')
 
 
+def plot_degree_distribution(graph):
+    counter = 0
+    count = {}
+    for n in list(graph):
+        tmp_dict= nx.shortest_path_length(graph, source=n)
+        tmp_res = 0
+        for j in list(graph):
+            if n != j:
+                try:
+                    tmp_res += tmp_dict[j]
+                except KeyError:
+                    continue
+        count[n] = tmp_res/(len(list(graph))-1)
+        print(counter)
+        counter += 1
+    count = nx.shortest_path_length()
+    x, y = log_binning(count, 60)
+    trace = go.Scatter(
+        x=np.array(x),
+        y=np.array(y),
+        mode='markers',
+        line=dict(
+            color=('rgb(205, 12, 24)')
+        )
+    )
+    layout = dict(title="Degree Distribution",
+                  xaxis=dict(title='Average degree',
+                             type='log'),
+                  yaxis=dict(title='Count',
+                             type='log')
+                  )
+    plot_data = [trace]
+    fig = go.Figure(data=plot_data, layout=layout)
+    image.save_as(fig, filename=IMG_PATH + 'degree_distribution.jpeg')
+
 def giant_component_filtering(graph):
     giant = max(nx.strongly_connected_components(graph), key=len)
     H = graph.subgraph(giant)
@@ -233,7 +280,7 @@ def read_csv(fname):
 def convert_to_csv(fname):
     df = pd.read_csv(fname, sep=" ", header=None)
     df = df.ix[:, [0, 1]]
-    df.to_csv("Datasets/giant_component_edges.csv", index=False, header=False)
+    df.to_csv("Datasets/condenced_edges.csv", index=False, header=False)
 
 
 def graph_comparison(graph, giant_comp):
@@ -245,9 +292,21 @@ def main():
     fname = 'Datasets/Cit-HepPh.csv'
     data = read_csv(fname)
     graph = create_graph(data)
+    plot_degree_distribution(graph)
+    # print_distance_information(graph)
+    # fname = 'Datasets/giant_component_edges.csv'
+    # data = read_csv(fname)
+    # graph = create_graph(data)
+    # print_distance_information(graph)
+
+    # components(graph)
+
+
+
     # # component = giant_component_filtering(graph)
     # graph_comparison(graph, component)
-    # fname = 'Datasets/giant_component.edgelist'
+
+    # fname = 'Datasets/condenced_graph.edgelist'
     # convert_to_csv(fname)
 
     # draw_graph(graph)
@@ -256,7 +315,6 @@ def main():
     # plot_out_degree_distribution(graph)
     # plot_distances(nx.shortest_path_length(graph))
     # plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
-    plot_avg_binned_degree_connectivity(nx.average_degree_connectivity(graph))
     node_metrics = 'Datasets/node_metrics_giant_component.csv'
     metrics = read_csv(node_metrics)
     # plot_binned_betweeness_centrality(metrics)
