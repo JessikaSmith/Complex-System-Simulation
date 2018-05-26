@@ -2,6 +2,10 @@
 
 IMG_PATH = 'Figures/'
 
+import plotly.graph_objs as go
+from plotly.offline import plot
+from plotly.plotly import image
+
 import networkx as nx
 import matplotlib.pyplot as plt
 from processing import *
@@ -36,10 +40,10 @@ def log_binning(counter_dict, bin_count=35):
 
     bins = np.logspace(min_x, max_base, num=bin_count)
 
-    bin_means_y = (np.histogram(counter_dict.keys(), bins, weights=counter_dict.values())[0] /
-                   np.histogram(counter_dict.keys(), bins)[0])
-    bin_means_x = (np.histogram(counter_dict.keys(), bins, weights=counter_dict.keys())[0] /
-                   np.histogram(counter_dict.keys(), bins)[0])
+    bin_means_y = (np.histogram(list(counter_dict.keys()), bins, weights=list(counter_dict.values()))[0] /
+                   np.histogram(list(counter_dict.keys()), bins)[0])
+    bin_means_x = (np.histogram(list(counter_dict.keys()), bins, weights=list(counter_dict.keys()))[0] /
+                   np.histogram(list(counter_dict.keys()), bins)[0])
 
     return bin_means_x, bin_means_y
 
@@ -128,6 +132,25 @@ def plot_avg_degree_connectivity(connect):
     plt.title('Assortativity Check')
     fig.savefig(IMG_PATH + 'assortativity.png')
 
+def plot_avg_binned_degree_connectivity(connect):
+    items = sorted(connect.items())
+    x, y = log_binning(connect, 60)
+    trace = go.Scatter(
+        x=np.array(x),
+        y=np.array(y),
+        mode='markers',
+        line=dict(
+            color=('rgb(205, 12, 24)')
+        )
+    )
+    layout = dict(title="Assortativity",
+                  xaxis=dict(title='k'),
+                  yaxis=dict(title='$<k_{nn}>$')
+                  )
+    plot_data = [trace]
+    fig = go.Figure(data=plot_data, layout=layout)
+    image.save_as(fig, filename=IMG_PATH + 'assortativity_binned.jpeg')
+
 
 def get_assortativity_coeff(g):
     return nx.degree_pearson_correlation_coefficient(g)
@@ -165,6 +188,34 @@ def plot_betweeness_centrality(data):
     plt.title('Betweeness Centrality Distribution')
     fig.savefig(IMG_PATH + 'betweenesscentrality_distribution2.png')
 
+def plot_binned_betweeness_centrality(data):
+    values = data['betweenesscentrality']
+    values = [float(i) for i in values]
+    counts = {}
+    for n in values:
+        if n not in counts:
+            counts[n] = 0
+        counts[n] += 1
+    items = sorted(counts.items())
+    x, y = log_binning(counts, 60)
+    trace = go.Scatter(
+        x=np.array(x),
+        y=np.array(y),
+        mode='markers',
+        line=dict(
+            color=('rgb(205, 12, 24)')
+        )
+    )
+    layout = dict(title="Beetweeness Distribution",
+                  xaxis=dict(title='Betweenness centrality',
+                             type='log'),
+                  yaxis=dict(title='Count',
+                             type='log')
+                  )
+    plot_data = [trace]
+    fig = go.Figure(data=plot_data, layout=layout)
+    image.save_as(fig, filename=IMG_PATH + 'betweenesscentrality_binned2.jpeg')
+
 
 def giant_component_filtering(graph):
     giant = max(nx.strongly_connected_components(graph), key=len)
@@ -191,12 +242,12 @@ def graph_comparison(graph, giant_comp):
 
 
 def main():
-    # fname = 'Datasets/Datasets/giant_component_edges.csv'
-    # data = read_csv(fname)
-    # graph = create_graph(data)
+    fname = 'Datasets/Cit-HepPh.csv'
+    data = read_csv(fname)
+    graph = create_graph(data)
     # # component = giant_component_filtering(graph)
     # graph_comparison(graph, component)
-    fname = 'Datasets/giant_component.edgelist'
+    # fname = 'Datasets/giant_component.edgelist'
     # convert_to_csv(fname)
 
     # draw_graph(graph)
@@ -205,9 +256,11 @@ def main():
     # plot_out_degree_distribution(graph)
     # plot_distances(nx.shortest_path_length(graph))
     # plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
+    plot_avg_binned_degree_connectivity(nx.average_degree_connectivity(graph))
     node_metrics = 'Datasets/node_metrics_giant_component.csv'
     metrics = read_csv(node_metrics)
-    plot_betweeness_centrality(metrics)
+    # plot_binned_betweeness_centrality(metrics)
+    # plot_betweeness_centrality(metrics)
     # print(estimating_power_law(metrics))
 
 
