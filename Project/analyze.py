@@ -108,6 +108,24 @@ def plot_out_degree_distribution(graph):
     plt.title('Out-Degree Distribution')
     fig.savefig(IMG_PATH + 'out_degree_distribution.png')
 
+def plot_total_degree_distribution(graph):
+    degs = {}
+    for n in graph.nodes():
+        deg = graph.degree(n)
+        if deg not in degs:
+            degs[deg] = 0
+        degs[deg] += 1
+    items = sorted(degs.items())
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot([k for (k, v) in items], [v / len(graph.nodes()) for (k, v) in items], 'ro')
+    ax.set_xscale('log')
+    plt.xlabel('k')
+    ax.set_yscale('log')
+    plt.ylabel('P(k)')
+    plt.title('BA Total Degree Distribution')
+    fig.savefig(IMG_PATH + 'model_total_distribution_BA.png')
+
 
 def plot_distances(dist):
     dist_count = {}
@@ -146,7 +164,7 @@ def plot_avg_degree_connectivity(connect):
     plt.xlabel('k')
     plt.ylabel('$<k_{nn}>$')
     plt.title('Assortativity Check')
-    fig.savefig(IMG_PATH + 'assortativity.png')
+    fig.savefig(IMG_PATH + 'out_assortativity.png')
 
 
 def plot_avg_binned_degree_connectivity(connect):
@@ -160,13 +178,41 @@ def plot_avg_binned_degree_connectivity(connect):
             color=('rgb(205, 12, 24)')
         )
     )
-    layout = dict(title="Assortativity",
+    layout = dict(title="Assortativity in",
                   xaxis=dict(title='k'),
                   yaxis=dict(title='$<k_{nn}>$')
                   )
     plot_data = [trace]
     fig = go.Figure(data=plot_data, layout=layout)
-    image.save_as(fig, filename=IMG_PATH + 'assortativity_binned.jpeg')
+    image.save_as(fig, filename=IMG_PATH + 'assortativity_in_binned.jpeg')
+
+
+def plot_binned_clustering_coeffs(data):
+    values = data['clustering']
+    values = [float(i) for i in values]
+    counts = {}
+    for n in values:
+        if n not in counts:
+            counts[n] = 0
+        counts[n] += 1
+    x, y = log_binning(counts, 60)
+    trace = go.Scatter(
+        x=np.array(x),
+        y=np.array(y),
+        mode='markers',
+        line=dict(
+            color=('rgb(205, 12, 24)')
+        )
+    )
+    layout = dict(title="Clustering Distribution",
+                  xaxis=dict(title='Clustering Coefficient',
+                             type='log'),
+                  yaxis=dict(title='Count',
+                             type='log')
+                  )
+    plot_data = [trace]
+    fig = go.Figure(data=plot_data, layout=layout)
+    image.save_as(fig, filename=IMG_PATH + 'clustering_binned.jpeg')
 
 
 def get_assortativity_coeff(g):
@@ -424,34 +470,57 @@ def plot_failure_attack(G):
     plt.show()
 
 
+def model_the_dist(graph):
+    # graph.number_of_edges()
+    # graph.number_of_nodes()
+    new_graph = nx.generators.extended_barabasi_albert_graph(int(graph.number_of_edges()/100),int(graph.number_of_nodes()/100), 0.8, 0.01)
+    plot_total_degree_distribution(new_graph)
+
+def calculate_gamma(G):
+    degrees = []
+    for n in G.nodes():
+        degrees += [G.out_degree(n)]
+    print(degrees)
+    #print(degrees[:5])
+    degrees = sorted(degrees)
+    degrees = [n for n in degrees if n >= 70]
+    print(degrees[:5])
+    exp = sum(map(lambda degree: math.log(degree / degrees[0]), degrees))
+    exp = 1 + len(degrees) / exp
+    return exp
+
 def main():
-    fname = 'Datasets/Cit-HepPh.csv'
+    fname = 'Datasets/giant_component_edges.csv'
     data = read_csv(fname)
     graph = create_graph(data)
-    plot_failure_attack(graph)
-    #plot_distance_distribution(graph)
+    # BA_graph = nx.barabasi_albert_graph(int(graph.number_of_edges()/100),int(graph.number_of_nodes()/100))
+    # plot_total_degree_distribution(BA_graph)
+    #print(calculate_gamma(graph))
+    # plot_failure_attack(graph)
+    # plot_distance_distribution(graph)
     # print_distance_information(graph)
     # fname = 'Datasets/giant_component_edges.csv'
     # data = read_csv(fname)
     # graph = create_graph(data)
-    # print_distance_information(graph)
-
+    # vv = [len(c) for c in sorted(nx.strongly_connected_components(graph), key=len, reverse=True)]
+    # print(choice(vv, 10))
     # components(graph)
-
     # # component = giant_component_filtering(graph)
     # graph_comparison(graph, component)
 
     # fname = 'Datasets/condenced_graph.edgelist'
     # convert_to_csv(fname)
-
+    model_the_dist(graph)
     # draw_graph(graph)
-    # print(get_assortativity_coeff(graph))
+    print(get_assortativity_coeff(graph))
     # plot_in_degree_distribution(graph)
     # plot_out_degree_distribution(graph)
     # plot_distances(nx.shortest_path_length(graph))
-    # plot_avg_degree_connectivity(nx.average_degree_connectivity(graph))
-    node_metrics = 'Datasets/node_metrics_giant_component.csv'
-    metrics = read_csv(node_metrics)
+    # plot_avg_binned_degree_connectivity(nx.average_degree_connectivity(graph, source="out"))
+    # plot_avg_binned_degree_connectivity(nx.average_degree_connectivity(graph, source="in"))
+    # node_metrics = 'Datasets/clustering_modularity.csv'
+    # metrics = read_csv(node_metrics)
+    # plot_binned_clustering_coeffs(metrics)
     # plot_binned_betweeness_centrality(metrics)
     # plot_betweeness_centrality(metrics)
     # print(estimating_power_law(metrics))

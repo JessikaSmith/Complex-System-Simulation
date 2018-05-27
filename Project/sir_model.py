@@ -1,11 +1,11 @@
 
 # Copyright (c) 2015-2017 Michael Lees, Debraj Roy
+from __future__ import unicode_literals
 
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt #import matplotlib for plotting/drawing grpahs
 import matplotlib.patches as mpatches
-from __future__ import unicode_literals
 import random
 from tqdm import tqdm
 import sys
@@ -45,7 +45,7 @@ def initialise_infection(G, num_to_infect):
     """
     nodes_to_infect = random.sample(G.nodes(), num_to_infect)
     for n in nodes_to_infect:
-        G.nodes[n]['state'] = State.Infected
+        G.node[n]['state'] = State.Infected
     return nodes_to_infect
 
 
@@ -64,10 +64,10 @@ def transmission_model_factory(beta=0.03, alpha=0.05):
     def m(n, G):
         list_of_neighbours_to_infect = []  # list of neighbours will be infect after executing this step
         removeMyself = False  # should I change my state to removed?
-        if G.nodes[n]['state'] == State.Infected:
+        if G.node[n]['state'] == State.Infected:
             # infect susceptible neighbours with probability beta
             for k in G.neighbors(n):
-                if G.nodes[k]['state'] == State.Succeptible:
+                if G.node[k]['state'] == State.Succeptible:
                     if random.random() <= beta:  # generate random number between 0 and 1
                         list_of_neighbours_to_infect.append(k)
             if random.random() <= alpha:
@@ -87,9 +87,9 @@ def apply_infection(G, list_of_newly_infected, list_of_newly_removed):
     actually builds a list of nodes to infect and to remove.
     """
     for n in list_of_newly_infected:
-        G.nodes[n]['state'] = State.Infected
+        G.node[n]['state'] = State.Infected
     for n in list_of_newly_removed:
-        G.nodes[n]['state'] = State.Removed
+        G.node[n]['state'] = State.Removed
 
 
 def execute_one_step(G, model):
@@ -120,9 +120,9 @@ def get_infection_stats(G):
     succeptible = []  # list of succeptible
     removed = []  # list of removed nodes
     for n in G:
-        if G.nodes[n]['state'] == State.Infected:
+        if G.node[n]['state'] == State.Infected:
             infected.append(n)
-        elif G.nodes[n]['state'] == State.Succeptible:
+        elif G.node[n]['state'] == State.Succeptible:
             succeptible.append(n)
         else:
             removed.append(n)
@@ -136,8 +136,7 @@ def print_infection_stats(G):
     Prints the number of succeptible, infected and removed nodes in graph G.
     """
     s, i, r = get_infection_stats(G)
-    print
-    "Succeptible: %d Infected: %d Removed %d" % (len(s), len(i), len(r))
+    print("Succeptible: %d Infected: %d Removed %d" % (len(s), len(i), len(r)))
 
 
 def run_spread_simulation(G, model, initial_infection_count, run_visualise=False):
@@ -239,10 +238,18 @@ def draw_network_to_file(G, pos, t, initially_infected):
     plt.savefig("images/g" + str(t) + ".png")
     plt.clf()
 
-if __name__ == "__main__":
+def main():
     # add graph here
-    fname = 'Datasets/Cit-HepPh.csv'
-    data = read_csv(fname)
-    graph = create_graph(data)
-    m = transmission_model_factory(0.03, 0.05)
-    analyze.plot_degree_distribution(graph)
+    fname = 'D:/UNIVERSITY/MS/Semester2/Complex Systems Simulation/Code/Complex-System-Simulation/Project/Datasets/giant_component_edges.csv'
+    data = analyze.read_csv(fname)
+    graph = analyze.create_graph(data)
+    m = transmission_model_factory(0.6, 0.2)
+    number_initial_infections = 20
+    print("here")
+    reset(graph)  # initialise all nodes to succeptible
+    S, I, R, endtime, ii = run_spread_simulation(graph, m, number_initial_infections)
+    plot_infection(S, I, R, graph)
+    #analyze.plot_degree_distribution(graph)
+
+if __name__ == "__main__":
+    main()
