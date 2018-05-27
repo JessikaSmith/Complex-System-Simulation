@@ -13,7 +13,7 @@ import operator
 from enum import *
 import copy
 
-from analyze import *
+import analyze
 
 plt.interactive(True)
 
@@ -245,4 +245,4 @@ if __name__ == "__main__":
     data = read_csv(fname)
     graph = create_graph(data)
     m = transmission_model_factory(0.03, 0.05)
-    plot_degree_distribution(graph)
+    analyze.plot_degree_distribution(graph)

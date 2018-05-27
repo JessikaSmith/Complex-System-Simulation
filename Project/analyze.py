@@ -6,7 +6,7 @@ import plotly
 import plotly.graph_objs as go
 from plotly.offline import plot
 from plotly.plotly import image
-
+import matplotlib.patches as mpatches
 import networkx as nx
 import matplotlib.pyplot as plt
 from processing import *
@@ -148,6 +148,7 @@ def plot_avg_degree_connectivity(connect):
     plt.title('Assortativity Check')
     fig.savefig(IMG_PATH + 'assortativity.png')
 
+
 def plot_avg_binned_degree_connectivity(connect):
     items = sorted(connect.items())
     x, y = log_binning(connect, 60)
@@ -270,7 +271,6 @@ def plot_distance_distribution(graph):
     image.save_as(fig, filename=IMG_PATH + 'distance_distribution.jpeg')
 
 
-
 def giant_component_filtering(graph):
     giant = max(nx.strongly_connected_components(graph), key=len)
     H = graph.subgraph(giant)
@@ -312,7 +312,7 @@ def diameter_ave_path_length(G):
     return max_path_length, avg_path_length
 
 
-def all_network_statistics(graph):
+def all_network_statistics(nw_list):
     # a function that takes in a list of networks and returns 3 lists of same length listing the diameter, average
     # path length and giant component size for all the networks
     diameters = []
@@ -320,12 +320,13 @@ def all_network_statistics(graph):
     S = []
     densities = []
     average_degrees = []
-    d, l, s, e, avd = a_network_statistics(graph)
-    diameters.append(d)
-    path_lengths.append(l)
-    S.append(s)
-    densities.append(e)
-    average_degrees.append(avd)
+    for n in nw_list:
+        d, l, s, e, avd = a_network_statistics(n)
+        diameters.append(d)
+        path_lengths.append(l)
+        S.append(s)
+        densities.append(e)
+        average_degrees.append(avd)
     return (diameters, path_lengths, S, densities, avd)
 
 
@@ -358,34 +359,77 @@ def attack_betweenness(G):
     G.remove_node(max_keys[0])
 
 
-def robustness_check(graph, removals, run_fail=True, measure=100):
-    avg_diam = []
-    avg_path_length = []
-    avg_S = []
+def experiments(networks, removals, run_fail=True, measure_every_X_removals=20):
+    # the below list will record the average statistic for all networks, a new entry in the list is added after each fail
+    ave_diameters = []
+    ave_path_lengths = []
+    ave_S = []
+    print("---- Starting Experiments ---- \n")
+    print()
     for x in tqdm(range(removals)):
-        if run_fail:
-            fail(graph)
-        else:
-            attack_degree(graph)
-        if x % measure == 0:
-            d, l, s, e, avd = all_network_statistics(graph)
-            avg_diam.append(np.mean(d))
-            avg_path_length.append(np.mean(l))
-            avg_S.append(np.mean(s))
-    return avg_diam, avg_path_length, avg_S
+        for n in networks:
+            if run_fail:
+                fail(n)
+            else:
+                attack_degree(n)
+        if x % measure_every_X_removals == 0:
+            d, l, s, e, avd = all_network_statistics(networks)
+            ave_diameters.append(np.mean(d))
+            ave_path_lengths.append(np.mean(l))
+            ave_S.append(np.mean(s))
+    print("---- Experiments Finished ---- \n")
+    print()
+    return ave_diameters, ave_path_lengths, ave_S
 
 
 def plot_failure_attack(G):
+    NetworkSize = G.order()
+    G_c = G.copy()
+    anf_ave_diameters, anf_ave_path_lengths, anf_ave_S = experiments([G], int(NetworkSize * 0.8), run_fail=True,
+                                                                     measure_every_X_removals=200)
+    ana_ave_diameters, ana_ave_path_lengths, ana_ave_S = experiments([G_c], int(NetworkSize * 0.8), run_fail=False,
+                                                                     measure_every_X_removals=200)
     fig_size = [18, 13]
     plt.rcParams.update({'font.size': 20, "figure.figsize": fig_size})
     xvalues = [(float(x) / float(NetworkSize)) * 200 for x in range(len(anf_ave_diameters))]
+
+    # Plot diameter
+    plt.plot(xvalues, anf_ave_diameters, '--or', xvalues, ana_ave_diameters, '--xb')
+    plt.xlabel('f')
+    plt.ylabel('diameter')
+    plt.title('Attacks & Failures on Airline Network Networks size')
+    red_patch = mpatches.Patch(color='red', label='Failures')
+    blue_patch = mpatches.Patch(color='blue', label='Attacks')
+    plt.legend(handles=[red_patch, blue_patch])
+    plt.show()
+
+    # Plot average path length
+    plt.plot(xvalues, anf_ave_path_lengths, '--or', xvalues, ana_ave_path_lengths, '--xb')
+    red_patch = mpatches.Patch(color='red', label='Failures')
+    blue_patch = mpatches.Patch(color='blue', label='Attacks')
+    plt.legend(handles=[red_patch, blue_patch])
+    plt.xlabel('f')
+    plt.ylabel('<l>')
+    plt.title('Attacks & Failures on Airline Network Networks size')
+    plt.show()
+
+    # Plot fraction of nodes in giant component
+    plt.plot(xvalues, anf_ave_S, '--or', xvalues, ana_ave_S, '--xb')
+    red_patch = mpatches.Patch(color='red', label='Failures')
+    blue_patch = mpatches.Patch(color='blue', label='Attacks')
+    plt.legend(handles=[red_patch, blue_patch])
+    plt.xlabel('f')
+    plt.ylabel('S')
+    plt.title('Attacks & Failures on Airline Network Networks size')
+    plt.show()
 
 
 def main():
     fname = 'Datasets/Cit-HepPh.csv'
     data = read_csv(fname)
     graph = create_graph(data)
-    plot_distance_distribution(graph)
+    plot_failure_attack(graph)
+    #plot_distance_distribution(graph)
     # print_distance_information(graph)
     # fname = 'Datasets/giant_component_edges.csv'
     # data = read_csv(fname)
