@@ -12,8 +12,10 @@ from processing import *
 import seaborn as sns
 from random import choice
 import math
+import random
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 plt.interactive(True)
 
@@ -30,9 +32,11 @@ def create_graph(data):
 def drop_zeros(a_list):
     return [i for i in a_list if i > 0]
 
+
 def print_distance_information(graph):
-    print("diameter",nx.diameter(graph))
+    print("diameter", nx.diameter(graph))
     print("radius", nx.radius(graph))
+
 
 def components(graph):
     print("Number of strongly connected components", nx.number_strongly_connected_components(graph))
@@ -200,6 +204,7 @@ def plot_betweeness_centrality(data):
     plt.title('Betweeness Centrality Distribution')
     fig.savefig(IMG_PATH + 'betweenesscentrality_distribution2.png')
 
+
 def plot_binned_betweeness_centrality(data):
     values = data['betweenesscentrality']
     values = [float(i) for i in values]
@@ -233,7 +238,7 @@ def plot_degree_distribution(graph):
     counter = 0
     count = {}
     for n in list(graph):
-        tmp_dict= nx.shortest_path_length(graph, source=n)
+        tmp_dict = nx.shortest_path_length(graph, source=n)
         tmp_res = 0
         for j in list(graph):
             if n != j:
@@ -241,7 +246,7 @@ def plot_degree_distribution(graph):
                     tmp_res += tmp_dict[j]
                 except KeyError:
                     continue
-        count[n] = tmp_res/(len(list(graph))-1)
+        count[n] = tmp_res / (len(list(graph)) - 1)
         print(counter)
         counter += 1
     count = nx.shortest_path_length()
@@ -263,6 +268,7 @@ def plot_degree_distribution(graph):
     plot_data = [trace]
     fig = go.Figure(data=plot_data, layout=layout)
     image.save_as(fig, filename=IMG_PATH + 'degree_distribution.jpeg')
+
 
 def giant_component_filtering(graph):
     giant = max(nx.strongly_connected_components(graph), key=len)
@@ -288,17 +294,103 @@ def graph_comparison(graph, giant_comp):
     print(graph.number_of_edges(), giant_comp.number_of_edges())
 
 
+def diameter_ave_path_length(G):
+    # We create our own function to do this so things are slightly faster,
+    # we can calculate diameter and avg path length at the same time
+    max_path_length = 0
+    total = 0.0
+    for n in G:  # iterate over all nodes
+        path_length = nx.single_source_shortest_path_length(G, n)  # generate shortest paths from node n to all others
+        total += sum(path_length.values())  # total of all shortest paths from n
+        if max(path_length.values()) > max_path_length:  # keep track of longest shortest path we see.
+            max_path_length = max(path_length.values())
+    try:
+        avg_path_length = total / (G.order() * (G.order() - 1))
+    except ZeroDivisionError:
+        avg_path_length = 0.0
+    return max_path_length, avg_path_length
+
+
+def all_network_statistics(graph):
+    # a function that takes in a list of networks and returns 3 lists of same length listing the diameter, average
+    # path length and giant component size for all the networks
+    diameters = []
+    path_lengths = []
+    S = []
+    densities = []
+    average_degrees = []
+    d, l, s, e, avd = a_network_statistics(graph)
+    diameters.append(d)
+    path_lengths.append(l)
+    S.append(s)
+    densities.append(e)
+    average_degrees.append(avd)
+    return (diameters, path_lengths, S, densities, avd)
+
+
+def a_network_statistics(graph):
+    Gcc = sorted(nx.strongly_connected_component_subgraphs(graph), key=len, reverse=True)
+    G0 = Gcc[0]
+    d, l = diameter_ave_path_length(G0)
+    s = float(G0.order()) / float(graph.number_of_nodes())
+    e = nx.density(G0)
+    avd = float(G0.size()) / float(graph.number_of_nodes())
+    return d, l, s, e, avd
+
+
+def fail(G):
+    n = random.choice(list(G.nodes()))
+    G.remove_node(n)
+
+
+def attack_degree(G):
+    degrees = dict(G.degree())
+    max_degree = max(degrees.values())
+    max_keys = [k for k, v in degrees.itams() if v == max_degree]
+    G.remove_node(max_keys[0])
+
+
+def attack_betweenness(G):
+    betweenness = dict(nx.betweenness_centrality(G))
+    max_betweenness = max(betweenness.values())
+    max_keys = [k for k, v in betweenness.items() if v == max_betweenness]
+    G.remove_node(max_keys[0])
+
+
+def robustness_check(graph, removals, run_fail=True, measure=100):
+    avg_diam = []
+    avg_path_length = []
+    avg_S = []
+    for x in tqdm(range(removals)):
+        if run_fail:
+            fail(graph)
+        else:
+            attack_degree(graph)
+        if x % measure == 0:
+            d, l, s, e, avd = all_network_statistics(graph)
+            avg_diam.append(np.mean(d))
+            avg_path_length.append(np.mean(l))
+            avg_S.append(np.mean(s))
+    return avg_diam, avg_path_length, avg_S
+
+
+def plot_failure_attack(G):
+    fig_size = [18, 13]
+    plt.rcParams.update({'font.size': 20, "figure.figsize": fig_size})
+    xvalues = [(float(x) / float(NetworkSize)) * 200 for x in range(len(anf_ave_diameters))]
+
+
 def main():
     fname = 'Datasets/Cit-HepPh.csv'
     data = read_csv(fname)
     graph = create_graph(data)
-    plot_degree_distribution(graph)
+    # plot_degree_distribution(graph)
     # print_distance_information(graph)
     # fname = 'Datasets/giant_component_edges.csv'
     # data = read_csv(fname)
     # graph = create_graph(data)
     # print_distance_information(graph)
-
+    robustness_check(graph, 100)
     # components(graph)
 
 
