@@ -1,6 +1,7 @@
 # data source: http://konect.uni-koblenz.de/networks/cit-HepPh
 
 IMG_PATH = 'Figures/'
+import plotly
 
 import plotly.graph_objs as go
 from plotly.offline import plot
@@ -41,7 +42,6 @@ def print_distance_information(graph):
 def components(graph):
     print("Number of strongly connected components", nx.number_strongly_connected_components(graph))
     print("Number of weakly connected components", nx.number_weakly_connected_components(graph))
-
 
     condensation = nx.condensation(graph)
     nx.write_edgelist(condensation, "Datasets/condenced_graph.edgelist")
@@ -213,7 +213,6 @@ def plot_binned_betweeness_centrality(data):
         if n not in counts:
             counts[n] = 0
         counts[n] += 1
-    items = sorted(counts.items())
     x, y = log_binning(counts, 60)
     trace = go.Scatter(
         x=np.array(x),
@@ -234,8 +233,7 @@ def plot_binned_betweeness_centrality(data):
     image.save_as(fig, filename=IMG_PATH + 'betweenesscentrality_binned2.jpeg')
 
 
-def plot_degree_distribution(graph):
-    counter = 0
+def plot_distance_distribution(graph):
     count = {}
     for n in list(graph):
         tmp_dict = nx.shortest_path_length(graph, source=n)
@@ -247,27 +245,30 @@ def plot_degree_distribution(graph):
                 except KeyError:
                     continue
         count[n] = tmp_res / (len(list(graph)) - 1)
-        print(counter)
-        counter += 1
-    count = nx.shortest_path_length()
-    x, y = log_binning(count, 60)
+    counts = {}
+    for n in count:
+        if n not in counts:
+            counts[n] = 0
+        counts[n] += 1
+    x, y = log_binning(count, 150)
     trace = go.Scatter(
-        x=np.array(x),
-        y=np.array(y),
+        x=np.array(y),
+        y=np.array(x),
         mode='markers',
         line=dict(
             color=('rgb(205, 12, 24)')
         )
     )
-    layout = dict(title="Degree Distribution",
-                  xaxis=dict(title='Average degree',
+    layout = dict(title="Distance Distribution",
+                  xaxis=dict(title='Average distance',
                              type='log'),
                   yaxis=dict(title='Count',
                              type='log')
                   )
     plot_data = [trace]
     fig = go.Figure(data=plot_data, layout=layout)
-    image.save_as(fig, filename=IMG_PATH + 'degree_distribution.jpeg')
+    image.save_as(fig, filename=IMG_PATH + 'distance_distribution.jpeg')
+
 
 
 def giant_component_filtering(graph):
@@ -384,16 +385,14 @@ def main():
     fname = 'Datasets/Cit-HepPh.csv'
     data = read_csv(fname)
     graph = create_graph(data)
-    # plot_degree_distribution(graph)
+    plot_distance_distribution(graph)
     # print_distance_information(graph)
     # fname = 'Datasets/giant_component_edges.csv'
     # data = read_csv(fname)
     # graph = create_graph(data)
     # print_distance_information(graph)
-    robustness_check(graph, 100)
+
     # components(graph)
-
-
 
     # # component = giant_component_filtering(graph)
     # graph_comparison(graph, component)
